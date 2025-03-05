@@ -1,0 +1,132 @@
+#! /usr/bin/env python3
+
+# Copyright 2025 Filip Pynckels
+# See README.md at https://github.com/Pynckels/rdr1442
+
+import argparse
+import base64
+import os
+import sys
+
+#------------------------------------------------------------------------------------------
+
+__VERSION__  = '1.0.pre-release'
+
+#------------------------------------------------------------------------------------------
+
+def rdr1442_read(inFile, outFile):
+
+    '''
+    Read a deck of punch cards from apdf file, convert them to text
+    and store them in a text file.
+    '''
+
+    def getCardStr(line):
+        ''' Convert pdf CARD line to string with card contents '''
+        card = line.strip()                                         # Remove whitespace and '\n'
+        card = card[10:]                                            # Extract base64
+        card = base64.b64decode(card)                               # Decode base64
+        return card                                                 # Return contents of card
+
+    if inFile == 'stdin':                                           # Input from stdin
+        lines = sys.stdin.buffer.readlines()
+    else:                                                           # Input from file
+        with open(inFile, 'rb') as inf:
+            lines = inf.readlines()
+
+    lines = [l for l in lines if l[0:10] == b'%% CARD - ']          # List - card deck
+    cards = [getCardStr(l) for l in lines]                          # List - cards contents
+    cards = b'\n'.join(cards) + b'\n'                               # bStr - cards contents
+
+    if outFile == 'stdout':                                         # Write card deck to stdout
+        sys.stdout.buffer.write(cards)
+    else:                                                           # Write card deck to file
+        with open(outFile, 'wb') as pdf:
+            pdf.write(cards)
+
+    return
+
+#------------------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------------------
+
+def main():
+
+    '''
+    Check arguments and punch cards with the given options
+    '''
+
+    def checkInput(lines):
+        ''' Check if the lines constitute a valid card deck. '''
+        if lines[0][0:5] != b'%PDF-':                               # Check if file starts with '%PDF-'
+            return False
+        if lines[1][0:10] != b'%% CARD - ':                         # Check if second line starts with '%% CARD - '
+            return False
+        return True
+
+
+    def infile_validator(file_path):
+        ''' Check if the file contains a card deck. Exception for stdin.'''
+        if file_path == '-':
+            return file_path
+        progName  = os.path.basename(__file__)
+        try:
+            with open(file_path, 'rb') as file:
+                lines = file.readlines()
+                if not checkInput(lines):                           # Check if file contents is coherent with our needs
+                    print(parser.format_usage().strip())
+                    print(f'{progName}: error: The file {file_path} is not a valid pun1442/rdr1442 card deck file.')
+                    quit()
+            return file_path                                        # Return the file path if it's a valid UTF-8 file
+        except FileNotFoundError:
+            print(parser.format_usage().strip())
+            print(f'{progName}: error: The file {file_path} does not exist.')
+            quit()
+
+
+    def outfile_validator(file_path, overwrite=False):
+        ''' Check if the output file path is valid and does not exist, unless overwrite is True. Exception for stdout '''
+        if file_path == '-':
+            return file_path
+        overwrite = args.overwrite
+        progName  = os.path.basename(__file__)
+        directory = os.path.dirname(file_path)                      # Check if the directory exists
+        if not os.path.isdir(directory) and directory != '':
+            print(parser.format_usage().strip())
+            print(f'{progName}: error: The directory {directory} does not exist.')
+            quit()
+        if os.path.exists(file_path) and not overwrite:             # Check if the file exists and overwrite is not allowed
+            print(parser.format_usage().strip())
+            print(f'{progName}: error: The file {file_path} already exists. Use -y to overwrite.')
+            quit()
+        return file_path                                            # Return the output file path if it's valid
+
+
+    parser = argparse.ArgumentParser(description='Print a text file to PDF in IBM 1403 retro style')
+
+    parser.add_argument('infile',            metavar='<Input file>',  type=infile_validator,                                               help='File to process or - for stdin.')
+    parser.add_argument('-o', '--outfile',   metavar='<Output file>', type=str,                                     default='rdr1442.txt', help='Output file name or - for stdout.')
+    parser.add_argument('-v', '--version',   action='version',        version='%(prog)s (version {version})'.format(version=__VERSION__),  help='Show program version and exit.')
+    parser.add_argument('-y', '--overwrite',                          action='store_true',                          default=False,         help='Overwrite output file.')
+
+    args = parser.parse_args()
+    args.outfile = outfile_validator(args.outfile, overwrite=args.overwrite)
+
+    if args.infile == '-':                                          # Normalize input file name
+        inFile = 'stdin'
+    else:
+        inFile = args.infile
+
+    if args.outfile == '-':                                         # Normalize output file name
+        outFile = 'stdout'
+    else:
+        outFile = args.outfile
+
+    rdr1442_read(inFile, outFile)                                   # Hit the road...
+
+    return
+
+#------------------------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    main()                                                          # Do not run if script is imported as a module
