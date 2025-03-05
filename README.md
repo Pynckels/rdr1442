@@ -2,9 +2,15 @@
 
 Read an IBM 1442 retro style punch card deck (created with pun1442) into a text file.
 
-![Fortran source code example](tests/testOut/test1.png)
+When reading the following punched card (created with pun1442):
 
-Examples of what can be done with rdr1442 can be found at https://github.com/Pynckels/rdr1442/tree/main/tests/testOut
+![Fortran source code example](tests/testIn/test1.png)
+
+The resulting text file contains:
+
+     &-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'="[.<(+|]$*);^\,%_>?
+
+Other examples of what can be done with rdr1442 can be found at https://github.com/Pynckels/rdr1442/tree/main/tests/testOut
 
 The commands to create the examples can be found at https://github.com/Pynckels/rdr1442/blob/main/tests/runtests.sh
 
